@@ -1,7 +1,11 @@
-import Fastify from "fastify";
+import Fastify, {
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+} from "fastify";
 import fastifyMultipart from "@fastify/multipart";
 import fastifyCors from "@fastify/cors";
-import fastifyJWT from "@fastify/jwt";
+import fastifyJwt from "@fastify/jwt";
 
 import uploadRoutes from "./routes/upload.js";
 import approvalsRoutes from "./routes/approvals.js";
@@ -9,54 +13,60 @@ import misRoutes from "./routes/mis.js";
 import authRoutes from "./routes/auth.js";
 import auditRoutes from "./routes/audit.js";
 import { connectDB } from "./plugins/db.js";
+import { JWT_SECRET } from "./config.js";
 
-const fastify = Fastify({ logger: true });
+const app: FastifyInstance = Fastify({ logger: true });
 
-await connectDB();
-fastify.log.info("MySQL connected successfully");
-
-await fastify.register(fastifyCors, { origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+await app.register(fastifyCors, {
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 });
-await fastify.register(fastifyMultipart, {
+
+await app.register(fastifyMultipart, {
   attachFieldsToBody: false,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
 });
 
-await fastify.register(fastifyJWT, {
-  secret: process.env.JWT_SECRET,
+await app.register(fastifyJwt, {
+  secret: JWT_SECRET as string,
 });
 
-fastify.decorate(
+app.decorate(
   "authenticate",
-  async function (request: any, reply: any) {
+  async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       await request.jwtVerify();
     } catch (err) {
-      return reply.code(401).send({ error: "Unauthorized" });
+      reply.code(401).send({ error: "Unauthorized" });
     }
   }
 );
 
-fastify.decorate("optionalAuth", async (req, _reply) => {
-  try {
-    await req.jwtVerify();
-  } catch {
-    req.user = { username: "guest", role: "teacher" };
+app.decorate(
+  "optionalAuth",
+  async (req: FastifyRequest, _reply: FastifyReply) => {
+    try {
+      await req.jwtVerify();
+    } catch {
+      (req as any).user = { username: "guest", role: "teacher" };
+    }
   }
-});
+);
 
-await fastify.register(authRoutes, { prefix: "/api/auth" });
-await fastify.register(misRoutes, { prefix: "/api/mis" });
-await fastify.register(approvalsRoutes, { prefix: "/api" });
-await fastify.register(uploadRoutes, { prefix: "/api" });
-await fastify.register(auditRoutes, { prefix: "/api" });
+await connectDB();
+app.log.info(" MySQL connected successfully");
+
+await app.register(authRoutes, { prefix: "/api/auth" });
+await app.register(misRoutes, { prefix: "/api/mis" });
+await app.register(approvalsRoutes, { prefix: "/api" });
+await app.register(uploadRoutes, { prefix: "/api" });
+await app.register(auditRoutes, { prefix: "/api" });
 
 try {
-  await fastify.listen({ port: 3002, host: "0.0.0.0" });
-  console.log("Server running at http://localhost:3002");
+  await app.listen({ port: 3002, host: "0.0.0.0" });
+  console.log(" Server running at http://localhost:3002");
 } catch (err) {
-  fastify.log.error(err);
+  app.log.error(err);
   process.exit(1);
 }

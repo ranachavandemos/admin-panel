@@ -1,0 +1,11 @@
+==========================================================================
+after staring the project for the first time, run this script on sql to create the first admin user
+==========================================================================
+INSERT INTO admins (username, password, role, createdAt, updatedAt)
+VALUES (
+  'admin',
+  '$2b$10$rqBUyeCkwxFBVKDYGfTTKOWwUSu1rxm1dAlQHjy/vzFf7rQQChsyW',
+  'admin',
+  NOW(),
+  NOW()
+);

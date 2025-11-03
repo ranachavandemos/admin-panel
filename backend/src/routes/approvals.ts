@@ -1,34 +1,60 @@
-import { ApprovalRequest, MISStudent, MISTeacher, AuditTrail } from "../models/index.js";
+import {
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+} from "fastify";
+import {
+  ApprovalRequest,
+  MISStudent,
+  MISTeacher,
+  AuditTrail,
+} from "../models/index.js";
 
-export default async function approvalsRoutes(fastify) {
-  fastify.get("/approvals/pending", async (_request, reply) => {
-    const list = await ApprovalRequest.findAll({
-      where: { status: "Pending" },
-      order: [["requested_at", "DESC"]],
-      limit: 2000,
-    });
-    return reply.send(list);
-  });
+interface ApproveParams {
+  id: string;
+}
 
-  fastify.post(
+interface RejectParams {
+  id: string;
+}
+
+interface RejectBody {
+  remarks?: string;
+}
+
+export default async function approvalsRoutes(fastify: FastifyInstance) {
+  fastify.get(
+    "/approvals/pending",
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      const list = await ApprovalRequest.findAll({
+        where: { status: "Pending" },
+        order: [["requested_at", "DESC"]],
+        limit: 2000,
+      });
+      return reply.send(list);
+    }
+  );
+
+  fastify.post<{ Params: ApproveParams }>(
     "/approvals/:id/approve",
     { preHandler: fastify.authenticate },
     async (request, reply) => {
       try {
         const id = Number(request.params.id);
-        const reqRec = await ApprovalRequest.findByPk(id);
+        const reqRec: any = await ApprovalRequest.findByPk(id);
+
         if (!reqRec) return reply.code(404).send({ error: "Not found" });
         if (reqRec.status !== "Pending")
           return reply.code(400).send({ error: "Already processed" });
 
-        const user = request.user || {};
+        const user = (request as any).user || {};
         if (user.role !== "admin")
           return reply.code(403).send({ error: "Forbidden" });
 
         const payload = reqRec.payload || {};
         const source = (reqRec.source_type || "").toLowerCase();
 
-        let inserted;
+        let inserted: any;
         if (source === "student") {
           inserted = await MISStudent.create({
             name: payload.Name || payload.name,
@@ -71,7 +97,10 @@ export default async function approvalsRoutes(fastify) {
           created_at: new Date(),
         });
 
-        return reply.send({ ok: true, message: "Record approved successfully." });
+        return reply.send({
+          ok: true,
+          message: "Record approved successfully.",
+        });
       } catch (err: any) {
         fastify.log.error(err);
 
@@ -99,18 +128,19 @@ export default async function approvalsRoutes(fastify) {
     }
   );
 
-  fastify.post(
+  fastify.post<{ Params: RejectParams; Body: RejectBody }>(
     "/approvals/:id/reject",
     { preHandler: fastify.authenticate },
     async (request, reply) => {
       try {
         const id = Number(request.params.id);
-        const reqRec = await ApprovalRequest.findByPk(id);
+        const reqRec: any = await ApprovalRequest.findByPk(id);
+
         if (!reqRec) return reply.code(404).send({ error: "Not found" });
         if (reqRec.status !== "Pending")
           return reply.code(400).send({ error: "Already processed" });
 
-        const user = request.user || {};
+        const user = (request as any).user || {};
         if (user.role !== "admin")
           return reply.code(403).send({ error: "Forbidden" });
 
@@ -130,7 +160,10 @@ export default async function approvalsRoutes(fastify) {
           created_at: new Date(),
         });
 
-        return reply.send({ ok: true, message: "Record rejected successfully." });
+        return reply.send({
+          ok: true,
+          message: "Record rejected successfully.",
+        });
       } catch (err: any) {
         fastify.log.error(err);
 
