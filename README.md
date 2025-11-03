@@ -5,7 +5,7 @@
 #### INSERT INTO admins (username, password, role, createdAt, updatedAt)
 #### VALUES (
 ####  'admin',
-####  '$2b$10$K4kq7exampleHashString1234567890example', 
+####  '$2b$10$rqBUyeCkwxFBVKDYGfTTKOWwUSu1rxm1dAlQHjy/vzFf7rQQChsyW', 
 #### 'admin',
 #### NOW(),
 #### NOW()
