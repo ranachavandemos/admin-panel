@@ -45,8 +45,8 @@ const PendingApprovals: React.FC = () => {
 
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      if (action === "approve") await axios.post(`http://localhost:3001/api/approvals/${id}/approve`, {}, { headers });
-      else await axios.post(`http://localhost:3001/api/approvals/${id}/reject`, { remarks: "Rejected by admin" }, { headers });
+      if (action === "approve") await axios.post(`${API}/api/approvals/${id}/approve`, {}, { headers });
+      else await axios.post(`${API}/api/approvals/${id}/reject`, { remarks: "Rejected by admin" }, { headers });
       fetchApprovals();
     } catch (err) {
       console.error(`${action} failed`, err);

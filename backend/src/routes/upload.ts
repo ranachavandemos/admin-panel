@@ -15,7 +15,7 @@ import {
 export default async function uploadRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/upload/direct",
-    { preHandler: [fastify.authenticate] },
+    { preHandler: [fastify.optionalAuth] },
     async (req: any, reply) => {
       try {
         const file = await req.file();

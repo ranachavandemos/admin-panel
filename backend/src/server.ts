@@ -15,7 +15,10 @@ const fastify = Fastify({ logger: true });
 await connectDB();
 fastify.log.info("MySQL connected successfully");
 
-await fastify.register(fastifyCors, { origin: "*" });
+await fastify.register(fastifyCors, { origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+});
 await fastify.register(fastifyMultipart, {
   attachFieldsToBody: false,
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -36,6 +39,14 @@ fastify.decorate(
   }
 );
 
+fastify.decorate("optionalAuth", async (req, _reply) => {
+  try {
+    await req.jwtVerify();
+  } catch {
+    req.user = { username: "guest", role: "teacher" };
+  }
+});
+
 await fastify.register(authRoutes, { prefix: "/api/auth" });
 await fastify.register(misRoutes, { prefix: "/api/mis" });
 await fastify.register(approvalsRoutes, { prefix: "/api" });
@@ -43,8 +54,8 @@ await fastify.register(uploadRoutes, { prefix: "/api" });
 await fastify.register(auditRoutes, { prefix: "/api" });
 
 try {
-  await fastify.listen({ port: 3001, host: "0.0.0.0" });
-  console.log("Server running at http://localhost:3001");
+  await fastify.listen({ port: 3002, host: "0.0.0.0" });
+  console.log("Server running at http://localhost:3002");
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);
